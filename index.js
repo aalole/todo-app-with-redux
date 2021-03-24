@@ -1,27 +1,27 @@
 //  Library Code
-function createStore(reducer) {
-  // the state tree
-  // a way to get the state tree
-  // a way to listen and respond to the state changing
-  // a way to update the state
-  let listeners = [];
-  let state;
-  const getState = () => state;
-  const subscribe = (listener) => {
-    listeners.push(listener);
-    return () => listeners.filter((ls) => ls !== listener);
-  };
+// function createStore(reducer) {
+//   // the state tree
+//   // a way to get the state tree
+//   // a way to listen and respond to the state changing
+//   // a way to update the state
+//   let listeners = [];
+//   let state;
+//   const getState = () => state;
+//   const subscribe = (listener) => {
+//     listeners.push(listener);
+//     return () => listeners.filter((ls) => ls !== listener);
+//   };
 
-  const dispatch = (action) => {
-    state = reducer(state, action);
-    listeners.forEach((listener) => listener());
-  };
-  return {
-    getState,
-    subscribe,
-    dispatch,
-  };
-}
+//   const dispatch = (action) => {
+//     state = reducer(state, action);
+//     listeners.forEach((listener) => listener());
+//   };
+//   return {
+//     getState,
+//     subscribe,
+//     dispatch,
+//   };
+// }
 
 // action.types
 const ADD_TODO = "ADD_TODO";
@@ -119,7 +119,32 @@ function app(state = {}, action) {
   };
 }
 // store
-const store = createStore(app);
+const checker = (store) => (next) => (action) => {
+  if (
+    action.type === ADD_TODO &&
+    action.todo.name.toLowerCase().includes("bitcoin")
+  ) {
+    return alert("Nope!! That is a bad idea!");
+  }
+  if (
+    action.type === ADD_GOAL &&
+    action.goal.name.toLowerCase().includes("bitcoin")
+  ) {
+    return alert("Nope!! That is a bad idea!");
+  }
+  return next(action);
+};
+
+const logger = (store) => (next) => (action) => {
+  console.group(action.type);
+  const result = next(action);
+  console.log("The action is :", action);
+  console.log("The current state is: ", store.getState());
+  console.groupEnd();
+  return result;
+};
+// const app = Redux.combineReducers({ todos, goals });
+const store = Redux.createStore(app, Redux.applyMiddleware(checker, logger));
 store.subscribe(() => {
   const { goals, todos } = store.getState();
 
@@ -133,11 +158,11 @@ store.subscribe(() => {
 // UI add Todo method
 function addTodo() {
   const todo = document.getElementById("todo");
-  const todoName = todo.value;
+  const name = todo.value;
   todo.value = "";
   store.dispatch(
     addTodoAction({
-      todoName,
+      name,
       id: idGenerator(),
       isCompleted: false,
     })
@@ -147,11 +172,11 @@ function addTodo() {
 // UI ADD GOAL METHOD
 function addGoal() {
   const input = document.getElementById("goal");
-  const goalName = input.value;
+  const name = input.value;
   input.value = "";
   store.dispatch(
     addGoalAction({
-      goalName,
+      name,
       id: idGenerator(),
       isCompleted: true,
     })
@@ -177,7 +202,7 @@ const createRemoveButton = (onClick) => {
 // ADDING TODO TO UI
 function populateTodo(todo) {
   const listItem = document.createElement("li");
-  const text = document.createTextNode(todo.todoName);
+  const text = document.createTextNode(todo.name);
 
   const itemRemoval = createRemoveButton(() => {
     store.dispatch(removeTodoAction(todo.id));
@@ -197,14 +222,14 @@ function populateTodo(todo) {
 // ADD GOAL ITEM TO UI
 function populateGoal(goal) {
   const listItem = document.createElement("li");
-  const text = document.createTextNode(goal.goalName);
+  const text = document.createTextNode(goal.name);
   const goalItemRemoval = createRemoveButton(() => {
     store.dispatch(removeGoalAction(goal.id));
   });
   listItem.appendChild(text);
   listItem.appendChild(goalItemRemoval);
   const goalUl = document.getElementById("goals");
-  goalUl.appendChild(listItem);
+  goalUl.append(listItem);
   listItem.style.textDecoration = goal.isCompleted ? "line-through" : "none";
   listItem.addEventListener("click", () => {
     store.dispatch(toggleGoalAction(goal.id));
